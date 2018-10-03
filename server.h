@@ -14,6 +14,7 @@ public slots:
     virtual void slotNewConnection();
     void slotReadClient();
 private:
+    QList<QTcpSocket*> clientList;
     QTcpServer* m_ptcpServer;
     quint16 m_nNextBlockSize;
     void sendToClient(QTcpSocket* pSocket, const QString& data);

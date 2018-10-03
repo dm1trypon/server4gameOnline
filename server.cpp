@@ -18,9 +18,10 @@ Server::Server(int nPort) : m_nNextBlockSize(0)
 void Server::slotNewConnection()
 {
     QTcpSocket* pClientSocket = m_ptcpServer->nextPendingConnection();
+    clientList << pClientSocket;
     qDebug() << "Client" << pClientSocket << "has been connected!";
-    connect(pClientSocket, SIGNAL(disconnected()), pClientSocket, SLOT(deleteLater()));
-    connect(pClientSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
+    connect(clientList[clientList.count() - 1], SIGNAL(disconnected()), pClientSocket, SLOT(deleteLater()));
+    connect(clientList[clientList.count() - 1], SIGNAL(readyRead()), this, SLOT(slotReadClient()));
 }
 
 void Server::slotReadClient()
@@ -36,7 +37,10 @@ void Server::slotReadClient()
     in >> data;
     qDebug() << data;
     m_nNextBlockSize = 0;
-    sendToClient(pClientSocket, data);
+    foreach(QTcpSocket* client, clientList)
+    {
+        sendToClient(client, data);
+    }
 }
 
 void Server::sendToClient(QTcpSocket *pClientSocket, const QString &data)
