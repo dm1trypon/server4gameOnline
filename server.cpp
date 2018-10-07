@@ -23,6 +23,8 @@ void Server::slotNewConnection()
     QTcpSocket* pClientSocket = m_ptcpServer->nextPendingConnection();
     clientList << pClientSocket;
     qDebug() << "Client" << pClientSocket << "has been connected!";
+//    QString strJson(_docClients.toJson(QJsonDocument::Compact));
+//    senderOut(strJson);
     connect(pClientSocket, SIGNAL(disconnected()), this, SLOT(slotDisconnected()));
     connect(pClientSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
 }
@@ -33,6 +35,8 @@ void Server::slotDisconnected()
     removeClientData(pClientSocket);
     qDebug() << "Client" << pClientSocket << "has been disconnected!";
     pClientSocket->deleteLater();
+    QString strJson(_docClients.toJson(QJsonDocument::Compact));
+    senderOut(strJson);
 }
 
 void Server::removeClientData(QTcpSocket* pClientSocket)
@@ -42,7 +46,7 @@ void Server::removeClientData(QTcpSocket* pClientSocket)
     {
         clientList.removeAt(idx);
     }
-    arrClients = _docClients.array();
+    arrClients = _docClients.object()[CLIENTS_LIST].toArray();
     int i = 0;
     foreach (const QJsonValue & value, arrClients)
     {
@@ -54,6 +58,10 @@ void Server::removeClientData(QTcpSocket* pClientSocket)
         }
         i++;
     }
+    QJsonObject objType;
+    QJsonObject objClients;
+    objType.insert(TYPE, CLIENTS_LIST);
+    objType.insert(CLIENTS_LIST, arrClients);
     QJsonDocument docClients(arrClients);
     _docClients = docClients;
 }
@@ -69,8 +77,13 @@ void Server::slotReadClient()
     }
     QString data;
     in >> data;
-    clientsListToJson(pClientSocket, data);
+//    clientsListToJson(pClientSocket, data);
     m_nNextBlockSize = 0;
+    senderOut(clientsListToJson(pClientSocket, data));
+}
+
+void Server::senderOut(QString data)
+{
     foreach(QTcpSocket* client, clientList)
     {
         qDebug() << client << data;
@@ -78,23 +91,29 @@ void Server::slotReadClient()
     }
 }
 
-void Server::clientsListToJson(QTcpSocket* pClientSocket, QString data)
+QString Server::clientsListToJson(QTcpSocket* pClientSocket, QString data)
 {
     QJsonDocument docData = QJsonDocument::fromJson(data.toUtf8());
     QJsonObject objData = docData.object();
     if (onTypeData(objData))
     {
         int idx = clientList.indexOf(pClientSocket);
+        QJsonObject objType;
         QJsonObject objClients;
+        objType.insert(TYPE, CLIENTS_LIST);
         objClients.insert(NICKNAME, objData.value(NICKNAME));
         objClients.insert(SOCKETIDX, idx);
         objClients.insert(POSX, objData.value(POSX));
         objClients.insert(POSY, objData.value(POSY));
         arrClients.push_back(objClients);
-        QJsonDocument docClients(arrClients);
+        objType.insert(CLIENTS_LIST, arrClients);
+        QJsonDocument docClients(objType);
         _docClients = docClients;
         qDebug() << "JSON CLIENTS:" <<_docClients;
+        QString strJson(_docClients.toJson(QJsonDocument::Compact));
+        return strJson;
     }
+    return data;
 }
 
 void Server::sendToClient(QTcpSocket *pClientSocket, const QString &data)

@@ -18,6 +18,7 @@ public slots:
 private slots:
     void slotDisconnected();
 private:
+    const QString CLIENTS_LIST = "clientsList";
     const QString POSY = "posY";
     const QString POSX = "posX";
     const QString MOVE = "move";
@@ -32,10 +33,11 @@ private:
     quint16 m_nNextBlockSize;
     void sendToClient(QTcpSocket* pSocket, const QString& data);
     void errorMessage();
-    void clientsListToJson(QTcpSocket *pClientSocket, QString data);
+    QString clientsListToJson(QTcpSocket *pClientSocket, QString data);
     void removeClientData(QTcpSocket *pClientSocket);
     bool onRemoveClient(QJsonObject _objArr, int idx);
     bool onTypeData(QJsonObject objData);
+    void senderOut(QString data);
 };
 
 #endif // SERVER_H
